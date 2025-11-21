@@ -575,6 +575,11 @@ function App() {
   const [aiPure, setAiPure] = useState([]);   // Big Tech AI (HighTech.xlsx)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [cohortToggles, setCohortToggles] = useState({
+    dotcom: true,
+    aiPure: true,
+    aiBroad: true,
+  });
 
   useEffect(() => {
     async function loadAll() {
@@ -582,11 +587,10 @@ function App() {
         setLoading(true);
         setError("");
 
-        // NOTE: index.html and app.jsx are in /frontend,
-        // data files are one level up (repo root)
-        const dotRows = await loadCsvAsObjects("../Dotcom.csv");
-        const pureRows = await loadExcelAsObjects("../PureAI.xlsx");
-        const highTechRows = await loadExcelAsObjects("../HighTech.xlsx");
+        // Data files live alongside index.html in /frontend for easy hosting
+        const dotRows = await loadCsvAsObjects("./Dotcom.csv");
+        const pureRows = await loadExcelAsObjects("./PureAI.xlsx");
+        const highTechRows = await loadExcelAsObjects("./HighTech.xlsx");
 
         setDotcom(
           tidyPanelJS(dotRows, [1996, 1997, 1998, 1999, 2000])
@@ -610,18 +614,30 @@ function App() {
 
   const ready = dotcom.length && aiBroad.length && aiPure.length;
 
+  const activeDotcom = cohortToggles.dotcom ? dotcom : [];
+  const activeAiPure = cohortToggles.aiPure ? aiPure : [];
+  const activeAiBroad = cohortToggles.aiBroad ? aiBroad : [];
+
   // Peak windows
-  const dotPeak = dotcom.filter((r) => [1999, 2000].includes(r.Year));
-  const aiPurePeak = aiPure.filter((r) => [2023, 2024, 2025].includes(r.Year));
-  const aiBroadPeak = aiBroad.filter((r) => [2023, 2024, 2025].includes(r.Year));
+  const dotPeak = activeDotcom.filter((r) => [1999, 2000].includes(r.Year));
+  const aiPurePeak = activeAiPure.filter((r) =>
+    [2023, 2024, 2025].includes(r.Year)
+  );
+  const aiBroadPeak = activeAiBroad.filter((r) =>
+    [2023, 2024, 2025].includes(r.Year)
+  );
 
   const dotPeakLog = safeLogArray(dotPeak.map((r) => r.ValRev));
   const aiPurePeakLog = safeLogArray(aiPurePeak.map((r) => r.ValRev));
   const aiBroadPeakLog = safeLogArray(aiBroadPeak.map((r) => r.ValRev));
 
-  const dotMed = medianLogPs(dotcom, [1999, 2000]);
-  const pureMed = medianLogPs(aiPure, [2023, 2024, 2025]);
-  const broadMed = medianLogPs(aiBroad, [2023, 2024, 2025]);
+  const dotMed = medianLogPs(activeDotcom, [1999, 2000]);
+  const pureMed = medianLogPs(activeAiPure, [2023, 2024, 2025]);
+  const broadMed = medianLogPs(activeAiBroad, [2023, 2024, 2025]);
+
+  const updateToggle = (key) => {
+    setCohortToggles((prev) => ({ ...prev, [key]: !prev[key] }));
+  };
 
   return (
     <div className="page">
@@ -657,6 +673,32 @@ function App() {
               {error}
             </p>
           )}
+          <div className="controls">
+            <label className="toggle-pill">
+              <input
+                type="checkbox"
+                checked={cohortToggles.dotcom}
+                onChange={() => updateToggle("dotcom")}
+              />
+              Dot-com cohort
+            </label>
+            <label className="toggle-pill">
+              <input
+                type="checkbox"
+                checked={cohortToggles.aiPure}
+                onChange={() => updateToggle("aiPure")}
+              />
+              Big Tech AI cohort
+            </label>
+            <label className="toggle-pill">
+              <input
+                type="checkbox"
+                checked={cohortToggles.aiBroad}
+                onChange={() => updateToggle("aiBroad")}
+              />
+              Pure-play AI cohort
+            </label>
+          </div>
         </div>
       </div>
 
@@ -670,9 +712,9 @@ function App() {
                 a natural log to make extreme ratios comparable.
               </p>
               <AvgPsLineChart
-                dotcom={dotcom}
-                aiPure={aiPure}
-                aiNiche={aiBroad}
+                dotcom={activeDotcom}
+                aiPure={activeAiPure}
+                aiNiche={activeAiBroad}
               />
             </div>
 
@@ -702,9 +744,9 @@ function App() {
                 show how valuations scaled relative to revenue in each regime.
               </p>
               <McRevScatterChart
-                dotcom={dotcom}
-                aiPure={aiPure}
-                aiNiche={aiBroad}
+                dotcom={activeDotcom}
+                aiPure={activeAiPure}
+                aiNiche={activeAiBroad}
               />
             </div>
 
@@ -728,8 +770,8 @@ function App() {
         !loading && (
           <p style={{ color: "var(--muted)", marginTop: 32 }}>
             Waiting for data. Check that <code>Dotcom.csv</code>,{" "}
-            <code>PureAI.xlsx</code> and <code>HighTech.xlsx</code> are in the
-            repo root (one level above <code>frontend/index.html</code>).
+            <code>PureAI.xlsx</code> and <code>HighTech.xlsx</code> sit next to
+            <code>frontend/index.html</code> when you host the page.
           </p>
         )
       )}
