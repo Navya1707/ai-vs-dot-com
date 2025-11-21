@@ -575,6 +575,7 @@ function App() {
   const [aiPure, setAiPure] = useState([]);   // Big Tech AI (HighTech.xlsx)
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [usedFallback, setUsedFallback] = useState(false);
   const [cohortToggles, setCohortToggles] = useState({
     dotcom: true,
     aiPure: true,
@@ -583,36 +584,68 @@ function App() {
 
   useEffect(() => {
     async function loadAll() {
+      let dotRows = [];
+      let pureRows = [];
+      let highTechRows = [];
+
       try {
         setLoading(true);
         setError("");
+        setUsedFallback(false);
 
         // Data files live alongside index.html in /frontend for easy hosting
-        const dotRows = await loadCsvAsObjects("./Dotcom.csv");
-        const pureRows = await loadExcelAsObjects("./PureAI.xlsx");
-        const highTechRows = await loadExcelAsObjects("./HighTech.xlsx");
-
-        setDotcom(
-          tidyPanelJS(dotRows, [1996, 1997, 1998, 1999, 2000])
-        );
-        setAiBroad(
-          tidyPanelJS(pureRows, [2020, 2021, 2022, 2023, 2024, 2025])
-        );
-        setAiPure(
-          tidyPanelJS(highTechRows, [2020, 2021, 2022, 2023, 2024, 2025])
-        );
+        dotRows = await loadCsvAsObjects("./Dotcom.csv");
+        pureRows = await loadExcelAsObjects("./PureAI.xlsx");
+        highTechRows = await loadExcelAsObjects("./HighTech.xlsx");
       } catch (e) {
         console.error(e);
-        setError(e.message || "Failed to load datasets");
-      } finally {
-        setLoading(false);
+        setError(
+          (e && e.message ? `${e.message}. ` : "") +
+            "Falling back to the embedded copies of the datasets."
+        );
       }
+
+      let dotTidy = [];
+      let pureTidy = [];
+      let highTechTidy = [];
+
+      try {
+        if (dotRows.length) {
+          dotTidy = tidyPanelJS(dotRows, [1996, 1997, 1998, 1999, 2000]);
+        }
+        if (pureRows.length) {
+          pureTidy = tidyPanelJS(pureRows, [2020, 2021, 2022, 2023, 2024, 2025]);
+        }
+        if (highTechRows.length) {
+          highTechTidy = tidyPanelJS(highTechRows, [2020, 2021, 2022, 2023, 2024, 2025]);
+        }
+      } catch (parseErr) {
+        console.error(parseErr);
+        setError(
+          "Ran into an issue parsing the uploaded spreadsheets; showing the embedded data instead."
+        );
+      }
+
+      if (
+        (!dotTidy.length || !pureTidy.length || !highTechTidy.length) &&
+        window.EMBEDDED_TIDY
+      ) {
+        dotTidy = window.EMBEDDED_TIDY.dotcom || [];
+        pureTidy = window.EMBEDDED_TIDY.pureAi || [];
+        highTechTidy = window.EMBEDDED_TIDY.highTech || [];
+        setUsedFallback(true);
+      }
+
+      setDotcom(dotTidy);
+      setAiBroad(pureTidy);
+      setAiPure(highTechTidy);
+      setLoading(false);
     }
 
     loadAll();
   }, []);
 
-  const ready = dotcom.length && aiBroad.length && aiPure.length;
+  const ready = !loading && (dotcom.length || aiBroad.length || aiPure.length);
 
   const activeDotcom = cohortToggles.dotcom ? dotcom : [];
   const activeAiPure = cohortToggles.aiPure ? aiPure : [];
@@ -671,6 +704,18 @@ function App() {
               }}
             >
               {error}
+            </p>
+          )}
+          {usedFallback && (
+            <p
+              style={{
+                marginTop: 8,
+                color: "#fde68a",
+                fontSize: "0.9rem",
+              }}
+            >
+              Showing the bundled copy of the datasets so the charts stay visible
+              even if your browser blocks local fetches.
             </p>
           )}
           <div className="controls">
