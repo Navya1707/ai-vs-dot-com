@@ -148,12 +148,18 @@ const MACRO_COLUMNS = [
 ];
 
 const MACRO_COLORS = [
-  "#f97316",
   "#22c55e",
-  "#3b82f6",
-  "#eab308",
+  "#38bdf8",
+  "#f59e0b",
   "#a855f7",
+  "#14b8a6",
 ];
+
+const SERIES_COLORS = {
+  dotcom: { solid: "#38bdf8", fill: "rgba(56,189,248,0.2)" },
+  bigTech: { solid: "#22c55e", fill: "rgba(34,197,94,0.2)" },
+  pureAi: { solid: "#f97316", fill: "rgba(249,115,22,0.22)" },
+};
 
 function parseMacroCsv(text) {
   const lines = text.trim().split(/\r?\n/);
@@ -329,8 +335,8 @@ function AvgPsLineChart({ dotcom, aiPure, aiNiche }) {
           {
             label: "Dot-com (avg log P/S)",
             data: dotData,
-            borderColor: "#f97316",
-            backgroundColor: "rgba(249,115,22,0.2)",
+            borderColor: SERIES_COLORS.dotcom.solid,
+            backgroundColor: SERIES_COLORS.dotcom.fill,
             tension: 0.3,
             borderWidth: 3,
             pointRadius: 3,
@@ -339,8 +345,8 @@ function AvgPsLineChart({ dotcom, aiPure, aiNiche }) {
           {
             label: "Big Tech AI (avg log P/S)",
             data: pureData,
-            borderColor: "#22c55e",
-            backgroundColor: "rgba(34,197,94,0.2)",
+            borderColor: SERIES_COLORS.bigTech.solid,
+            backgroundColor: SERIES_COLORS.bigTech.fill,
             tension: 0.3,
             borderWidth: 3,
             pointRadius: 3,
@@ -349,8 +355,8 @@ function AvgPsLineChart({ dotcom, aiPure, aiNiche }) {
           {
             label: "Pure-play AI (avg log P/S)",
             data: nicheData,
-            borderColor: "#3b82f6",
-            backgroundColor: "rgba(59,130,246,0.2)",
+            borderColor: SERIES_COLORS.pureAi.solid,
+            backgroundColor: SERIES_COLORS.pureAi.fill,
             tension: 0.3,
             borderWidth: 3,
             pointRadius: 3,
@@ -577,25 +583,30 @@ function McRevScatterChart({ dotcom, aiPure, aiNiche }) {
           {
             label: "Dot-com (log-log)",
             data: dotPts,
-            backgroundColor: "rgba(249,115,22,0.6)",
-            pointRadius: 3,
-            pointStyle: "cross",
+            backgroundColor: SERIES_COLORS.dotcom.fill,
+            borderColor: SERIES_COLORS.dotcom.solid,
+            pointRadius: 4,
+            pointStyle: "crossRot",
+            pointBorderWidth: 1.4,
           },
           {
             label: "Big Tech AI (log-log)",
             data: purePts,
-            backgroundColor: "rgba(34,197,94,0.6)",
-            pointRadius: 3,
+            backgroundColor: SERIES_COLORS.bigTech.fill,
+            borderColor: SERIES_COLORS.bigTech.solid,
+            pointRadius: 4,
+            pointHoverRadius: 6,
             pointStyle: "circle",
+            pointBorderWidth: 1.2,
           },
           {
             label: "Pure-play AI (log-log)",
             data: nichePts,
-            backgroundColor: "rgba(249,115,22,0.75)",
-            borderColor: "#fb923c",
-            borderWidth: 1.2,
-            pointRadius: 4,
-            pointHoverRadius: 6,
+            backgroundColor: SERIES_COLORS.pureAi.fill,
+            borderColor: SERIES_COLORS.pureAi.solid,
+            borderWidth: 1.6,
+            pointRadius: 5,
+            pointHoverRadius: 7,
             pointStyle: "triangle",
           },
         ],
@@ -656,9 +667,9 @@ function MedianPsBarChart({ dotMed, pureMed, nicheMed }) {
             label: "Median log(P/S) at peaks",
             data: values,
             backgroundColor: [
-              "rgba(249,115,22,0.8)",
-              "rgba(34,197,94,0.8)",
-              "rgba(59,130,246,0.8)",
+              SERIES_COLORS.dotcom.fill,
+              SERIES_COLORS.bigTech.fill,
+              SERIES_COLORS.pureAi.fill,
             ],
             borderRadius: 8,
           },
