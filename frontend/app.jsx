@@ -16,6 +16,7 @@ const DATA_PATHS = {
 const THEME = {
   text: "#94a3b8",
   grid: "rgba(255, 255, 255, 0.06)",
+  tooltipBg: "rgba(255, 255, 255, 0.06)",
   tooltipBg: "rgba(15, 22, 41, 0.9)",
   tooltipBorder: "rgba(255, 255, 255, 0.1)",
 };
@@ -669,8 +670,6 @@ function PeScatterChart({ peRows, toggles }) {
           legend: { labels: { usePointStyle: true, boxWidth: 6 } },
           tooltip: {
             backgroundColor: THEME.tooltipBg,
-            titleColor: "#fff",
-            bodyColor: "#cbd5e1",
             borderColor: THEME.tooltipBorder,
             borderWidth: 1,
             callbacks: {
@@ -926,17 +925,17 @@ function MedianBarChart({ values, label }) {
     canvasRef,
     () => ({
       type: "bar",
-        data: {
-          labels: ["Dot-com Peak", "Big Tech AI Peak", "Pure AI Peak"],
-          datasets: [
-            {
-              label,
-              data: values,
-              backgroundColor: [
-                SERIES_COLORS.dotcom.fill,
-                SERIES_COLORS.bigTech.fill,
-                SERIES_COLORS.pureAi.fill,
-              ],
+      data: {
+        labels: ["Dot-com Peak", "Big Tech AI Peak", "Pure AI Peak"],
+        datasets: [
+          {
+            label,
+            data: values,
+            backgroundColor: [
+              SERIES_COLORS.dotcom.fill,
+              SERIES_COLORS.bigTech.fill,
+              SERIES_COLORS.pureAi.fill,
+            ],
             borderColor: [
               SERIES_COLORS.dotcom.solid,
               SERIES_COLORS.bigTech.solid,
@@ -1057,6 +1056,8 @@ function App() {
     "Z-score (standardize)"
   );
   const [macroZoom, setMacroZoom] = useState("AI Boom (2022–2025)");
+  const [macroZoom2, setMacroZoom2] = useState("Dot-com Bubble (1995–2002)");
+  const [macroStory, setMacroStory] = useState(null);
 
   useEffect(() => {
     async function init() {
@@ -1214,6 +1215,57 @@ function App() {
     macroRows
   );
   const macroZoomSeries = buildSeries(macroZoomRows, macroZoomNorm);
+
+  const zoomDates2 = zoomRanges[macroZoom2];
+  const macroZoomRows2 =
+    !macroZoom2 || macroZoom2 === "None" || !zoomDates2
+      ? []
+      : macroRows.filter(
+          (r) => r.Date >= zoomDates2[0] && r.Date <= zoomDates2[1]
+        );
+  const macroZoomNorm2 = normalizeMacro(
+    macroZoomRows2,
+    macroSelectedCols,
+    macroNormalization,
+    macroRows
+  );
+  const macroZoomSeries2 = buildSeries(macroZoomRows2, macroZoomNorm2);
+
+  const applyMacroStory = (storyType) => {
+    setMacroStory(storyType);
+    if (storyType === "bull") {
+      setMacroZoom("Dot-com Bubble (1995–2002)");
+      setMacroZoom2("AI Boom (2022–2025)");
+      const newSelection = {};
+      MACRO_COLUMNS.forEach((c) => (newSelection[c] = false));
+      newSelection["GDP Yearly Growth"] = true;
+      newSelection["Unemployment"] = true;
+      newSelection["NASDAQ Yearly Growth"] = true;
+      setMacroSelection(newSelection);
+    } else if (storyType === "bear") {
+      setMacroZoom("Dot-com Bubble (1995–2002)");
+      setMacroZoom2("AI Boom (2022–2025)");
+      const newSelection = {};
+      MACRO_COLUMNS.forEach((c) => (newSelection[c] = false));
+      newSelection["Inflation"] = true;
+      newSelection["Interest Rate"] = true;
+      setMacroSelection(newSelection);
+    }
+  };
+
+  const resetView = () => {
+    setMacroStory(null);
+    setMacroNormalization("Z-score (standardize)");
+    setMacroZoom("AI Boom (2022–2025)");
+    setMacroZoom2("Dot-com Bubble (1995–2002)");
+    if (macroRows.length > 0) {
+      setMacroRange([0, Math.max(macroRows.length - 1, 0)]);
+      const allCols = MACRO_COLUMNS.filter((c) => c in macroRows[0]);
+      setMacroSelection(
+        allCols.reduce((acc, c) => ({ ...acc, [c]: true }), {})
+      );
+    }
+  };
 
   const toggleCohort = (k) =>
     setCohortToggles((p) => ({ ...p, [k]: !p[k] }));
@@ -1532,6 +1584,85 @@ function App() {
           <h2>Macroeconomic Context</h2>
         </div>
 
+        {/* Bull / Bear controls from previous version */}
+        <div
+          className="macro-story-controls"
+          style={{
+            display: "flex",
+            gap: "1rem",
+            marginBottom: "2rem",
+            justifyContent: "center",
+          }}
+        >
+          <button
+            onClick={() => applyMacroStory("bull")}
+            className={`story-btn ${macroStory === "bull" ? "active" : ""}`}
+            style={{
+              fontSize: "1.2rem",
+              padding: "1rem 2rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              borderColor: macroStory === "bull" ? "#22c55e" : undefined,
+            }}
+          >
+            <span>🐂</span> Bull Case
+          </button>
+          <button
+            onClick={() => applyMacroStory("bear")}
+            className={`story-btn ${macroStory === "bear" ? "active" : ""}`}
+            style={{
+              fontSize: "1.2rem",
+              padding: "1rem 2rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              borderColor: macroStory === "bear" ? "#ef4444" : undefined,
+            }}
+          >
+            <span>🐻</span> Bear Case
+          </button>
+          <button
+            onClick={resetView}
+            className="story-btn"
+            style={{
+              fontSize: "1.2rem",
+              padding: "1rem 2rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              borderColor: "rgba(255,255,255,0.4)",
+              color: "#fff",
+            }}
+          >
+            <span>🔄</span> Reset View
+          </button>
+        </div>
+
+        {macroStory && (
+          <div
+            className="card story-content"
+            style={{
+              marginBottom: "2rem",
+              borderLeft:
+                macroStory === "bull"
+                  ? "4px solid #22c55e"
+                  : "4px solid #ef4444",
+            }}
+          >
+            <div className="info-headline">
+              {macroStory === "bull"
+                ? "The Bull Case: Resilience & Growth"
+                : "The Bear Case: Rate Shock Risk"}
+            </div>
+            <p className="info-body">
+              {macroStory === "bull"
+                ? "Yes, it's true that the stock market growth is outpacing GDP growth, but viewing it in the bigger picture it's not as bad as it seems, and not close to the dot-com bubble.  Unemployment is rising, but still low by historical standards."
+                : "The interest rate is generally raised to lower inflation, but despite decades-high rates, inflation remains sticky.  In the dot-com bubble, interest rates were similar to today's pre-crash rates."}
+            </p>
+          </div>
+        )}
+
         <div className="macro-layout">
           <div className="card macro-controls">
             <h3>Configuration</h3>
@@ -1677,28 +1808,97 @@ function App() {
               </div>
             </div>
 
-            {macroZoom !== "None" && (
-              <div className="card chart-card">
-                <h3
-                  style={{
-                    margin: "0 0 10px 0",
-                    fontSize: "1rem",
-                    color: "var(--muted)",
-                  }}
-                >
-                  Zoom: {macroZoom}
-                </h3>
+            <div
+              style={{
+                display: "flex",
+                gap: 24,
+                flexDirection: "row",
+                flexWrap: "wrap",
+              }}
+            >
+              {macroZoom !== "None" && (
                 <div
-                  className="chart-container"
-                  style={{ height: 320 }}
+                  className="card chart-card"
+                  style={{ flex: 1, minWidth: 300 }}
                 >
-                  <MacroLineChart
-                    series={macroZoomSeries}
-                    yTitle={macroNormalization}
-                  />
+                  <h3
+                    style={{
+                      margin: "0 0 10px 0",
+                      fontSize: "1rem",
+                      color: "var(--muted)",
+                    }}
+                  >
+                    Zoom: {macroZoom}
+                  </h3>
+                  <div
+                    className="chart-container"
+                    style={{ height: 320 }}
+                  >
+                    <MacroLineChart
+                      series={macroZoomSeries}
+                      yTitle={macroNormalization}
+                    />
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {macroZoom2 !== "None" && (
+                <div
+                  className="card chart-card"
+                  style={{ flex: 1, minWidth: 300 }}
+                >
+                  <div style={{ marginBottom: 10 }}>
+                    <select
+                      value={macroZoom2}
+                      onChange={(e) => setMacroZoom2(e.target.value)}
+                      style={{
+                        fontSize: "1rem",
+                        padding: "4px 8px",
+                        background: "transparent",
+                        border: "none",
+                        color: "var(--muted)",
+                        cursor: "pointer",
+                        outline: "none",
+                        fontWeight: 600,
+                        textAlign: "left",
+                      }}
+                    >
+                      <option disabled>Select Era...</option>
+                      {Object.keys(zoomRanges).map((z) => (
+                        <option
+                          key={z}
+                          value={z}
+                          style={{
+                            background: "#0f1629",
+                            color: "#e2e8f0",
+                          }}
+                        >
+                          {z}
+                        </option>
+                      ))}
+                      <option
+                        value="None"
+                        style={{
+                          background: "#0f1629",
+                          color: "#e2e8f0",
+                        }}
+                      >
+                        None
+                      </option>
+                    </select>
+                  </div>
+                  <div
+                    className="chart-container"
+                    style={{ height: 320 }}
+                  >
+                    <MacroLineChart
+                      series={macroZoomSeries2}
+                      yTitle={macroNormalization}
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
